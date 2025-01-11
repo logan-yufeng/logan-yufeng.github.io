@@ -94,34 +94,6 @@
   ); /* 黄色竖条纹 */
   background-size: 100% 20px; /* 设置条纹的大小 */
 }
-/* 闪电效果 */
-.shirt.sport .lightning {
-  content: "";
-  position: absolute;
-  top: 10%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-bottom: 60px solid yellow; /* 黄色闪电 */
-  transform: translateX(-50%) rotate(45deg); /* 调整位置和旋转角度 */
-  animation: lightning 0.5s ease-in-out infinite; /* 闪电动画 */
-}
-
-/* 闪电动画 */
-@keyframes lightning {
-  0% {
-    transform: translateX(-50%) rotate(45deg) scaleY(0);
-  }
-  50% {
-    transform: translateX(-50%) rotate(45deg) scaleY(1);
-  }
-  100% {
-    transform: translateX(-50%) rotate(45deg) scaleY(0);
-  }
-}
-
 /* 裤子样式 */
 .pants {
   width: 80px;
@@ -201,35 +173,6 @@ button:hover {
   display: none;
 }
 
-
-/* 确保页面内容居中 */
-body {
-  font-family: "KaiTi", "楷体", serif; /* 设置全局字体为楷体 */
-  background-color: #e0f7fa; /* 设置浅蓝色背景 */
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center; /* 垂直居中 */
-  min-height: 100vh; /* 使页面内容占满整个视口 */
-  margin: 0; /* 去掉默认的页边距 */
-  flex-direction: column; /* 让所有内容垂直排列 */
-}
-
-/* 设置内容的容器居中对齐 */
-#result,
-.selection {
-  text-align: center;
-}
-
-/* 给按钮一些空间 */
-button {
-  margin: 10px;
-}
-
-/* 确保“回到主页”按钮也居中 */
-#back-to-home {
-  align-self: center; /* 使按钮在父容器内居中 */
-}
-
 /* 按钮样式 */
 button {
   padding: 10px 20px;
@@ -243,11 +186,6 @@ button {
 
 button:hover {
   background-color: #45a049;
-}
-
-/* 隐藏选择 */
-.hidden {
-  display: none;
 }
 
 /* 基础按钮样式 */
