@@ -208,6 +208,17 @@
                 '冲二': 500
             };
             
+            // 威胁等级定义（数值越小优先级越高）
+            const THREAT_LEVEL = {
+                '活五': 1,
+                '冲四': 2,
+                '活四': 2,
+                '活三': 3,
+                '冲三': 4,
+                '活二': 5,
+                '冲二': 6
+            };
+            
             // 绘制棋盘
             function drawBoard() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -458,12 +469,12 @@
                 
                 // 活五
                 if (pattern.includes(`0${playerStr.repeat(5)}0`)) {
-                    return {score: PATTERN_SCORES['活五'], type: '活五'};
+                    return {score: PATTERN_SCORES['活五'], type: '活五', level: THREAT_LEVEL['活五']};
                 }
                 
                 // 活四
                 if (pattern.includes(`0${playerStr.repeat(4)}0`)) {
-                    return {score: PATTERN_SCORES['活四'], type: '活四'};
+                    return {score: PATTERN_SCORES['活四'], type: '活四', level: THREAT_LEVEL['活四']};
                 }
                 
                 // 冲四（优化：增加间隔型冲四检测）
@@ -479,7 +490,7 @@
                 
                 for (const p of openEndFourPatterns) {
                     if (pattern.includes(p)) {
-                        return {score: PATTERN_SCORES['冲四'], type: '冲四'};
+                        return {score: PATTERN_SCORES['冲四'], type: '冲四', level: THREAT_LEVEL['冲四']};
                     }
                 }
                 
@@ -492,7 +503,7 @@
                 
                 for (const p of activeThreePatterns) {
                     if (pattern.includes(p) && !pattern.includes(opponentStr)) {
-                        return {score: PATTERN_SCORES['活三'], type: '活三'};
+                        return {score: PATTERN_SCORES['活三'], type: '活三', level: THREAT_LEVEL['活三']};
                     }
                 }
                 
@@ -508,7 +519,7 @@
                 
                 for (const p of blockedThreePatterns) {
                     if (pattern.includes(p)) {
-                        return {score: PATTERN_SCORES['冲三'], type: '冲三'};
+                        return {score: PATTERN_SCORES['冲三'], type: '冲三', level: THREAT_LEVEL['冲三']};
                     }
                 }
                 
@@ -520,7 +531,7 @@
                 
                 for (const p of activeTwoPatterns) {
                     if (pattern.includes(p) && !pattern.includes(opponentStr)) {
-                        return {score: PATTERN_SCORES['活二'], type: '活二'};
+                        return {score: PATTERN_SCORES['活二'], type: '活二', level: THREAT_LEVEL['活二']};
                     }
                 }
                 
@@ -534,11 +545,11 @@
                 
                 for (const p of blockedTwoPatterns) {
                     if (pattern.includes(p)) {
-                        return {score: PATTERN_SCORES['冲二'], type: '冲二'};
+                        return {score: PATTERN_SCORES['冲二'], type: '冲二', level: THREAT_LEVEL['冲二']};
                     }
                 }
                 
-                return {score: 0, type: '无'};
+                return {score: 0, type: '无', level: Infinity};
             }
             
             // 获取所有可能的棋型
@@ -597,6 +608,21 @@
                 return fourCount >= 2;
             }
             
+            // 获取位置的最高威胁等级
+            function getHighestThreatLevel(row, col, player) {
+                if (gameBoard[row][col] !== 0) return Infinity;
+                
+                // 临时落子评估
+                gameBoard[row][col] = player;
+                const patterns = getAllPatterns(row, col, player);
+                gameBoard[row][col] = 0;
+                
+                if (patterns.length === 0) return Infinity;
+                
+                // 找到最高优先级威胁（数值最小）
+                return Math.min(...patterns.map(p => p.level));
+            }
+            
             // 评估位置分数（优化版）
             function evaluatePosition(row, col, player) {
                 if (gameBoard[row][col] !== 0) return 0;
@@ -646,6 +672,7 @@
                 let opponentHasLiveFour = false;
                 let opponentHasDoubleActiveThree = false;
                 let opponentActiveThreeCount = 0;
+                let opponentHighestThreatLevel = Infinity;
                 
                 for (const pattern of opponentPatterns) {
                     opponentScore += pattern.score;
@@ -663,10 +690,18 @@
                             opponentHasDoubleActiveThree = true;
                         }
                     }
+                    
+                    // 更新对手最高威胁等级
+                    if (pattern.level < opponentHighestThreatLevel) {
+                        opponentHighestThreatLevel = pattern.level;
+                    }
                 }
                 
                 // 撤销临时落子
                 gameBoard[row][col] = 0;
+                
+                // 获取当前位置的威胁等级
+                const myHighestThreatLevel = getHighestThreatLevel(row, col, player);
                 
                 // 核心策略（按优先级排序）
                 if (isDoubleFour || hasLiveFour) {
@@ -683,8 +718,9 @@
                     return opponentScore * 1.5; // 对手双活三，必须防守
                 }
                 
-                // 平衡攻防
-                return Math.max(myScore, opponentScore * 1.2);
+                // 平衡攻防：根据威胁等级调整权重
+                const defenseWeight = opponentHighestThreatLevel <= myHighestThreatLevel ? 1.5 : 1;
+                return Math.max(myScore, opponentScore * defenseWeight);
             }
             
             // AI落子 - 基于规则的算法（优化版）
@@ -919,4 +955,4 @@
         });
     </script>
 </body>
-</html>    
+</html>
