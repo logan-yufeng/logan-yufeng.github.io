@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>弹跳小球游戏</title>
+    <title>弹跳小球游戏 - 20+爆炸规则版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #d2b48c; /* 牛皮纸色背景 */
+            background-color: #d2b48c;
             cursor: pointer;
         }
         canvas {
@@ -26,13 +26,14 @@
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            width: 60px; /* 缩小状态宽度 */
-            transition: width 0.3s ease, height 0.3s ease;
+            width: 60px;
+            transition: width 0.3s ease;
             overflow: hidden;
             cursor: pointer;
+            z-index: 10;
         }
         .info:hover {
-            width: 250px; /* 悬停时展开宽度 */
+            width: 300px;
         }
         .info .rule-title {
             font-weight: bold;
@@ -57,6 +58,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             font-weight: bold;
+            z-index: 10;
         }
         .reset-animation {
             position: fixed;
@@ -74,6 +76,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.5s;
+            z-index: 20;
         }
     </style>
 </head>
@@ -85,11 +88,13 @@
         <span class="rule-title">规则</span>
         <div class="rule-details">
             <p><i class="fa fa-mouse-pointer mr-2"></i>点击生成小球</p>
-            <p><i class="fa fa-random mr-2"></i>碰撞融合（数字相加）</p>
-            <p><i class="fa fa-bomb mr-2"></i>5号球爆炸不生成新球</p>
-            <p><i class="fa fa-split mr-2"></i>6→6个1，7→6个2，8→6个3</p>
-            <p><i class="fa fa-split mr-2"></i>9→6个4，10→8个3</p>
-            <p><i class="fa fa-exclamation-triangle mr-2"></i>超200个球会重置</p>
+            <p><i class="fa fa-random mr-2"></i>任意小球碰撞即可合成</p>
+            <p><i class="fa fa-bomb mr-2"></i>20及以上球会爆炸</p>
+            <p><i class="fa fa-ban mr-2"></i>20号爆炸不分裂</p>
+            <p><i class="fa fa-split mr-2"></i>21→6个1，22→6个2</p>
+            <p><i class="fa fa-split mr-2"></i>23→6个3，24→6个4</p>
+            <p><i class="fa fa-split mr-2"></i>25→6个5，25+同25</p>
+            <p><i class="fa fa-exclamation-triangle mr-2"></i>超400个球会重置</p>
         </div>
     </div>
     <div class="reset-animation" id="resetAnimation">
@@ -114,76 +119,97 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
-        // 小球类
+        // 小球类 - 20及以上爆炸规则实现
         class Ball {
             constructor(x, y, number = 1) {
-                // 数字和大小
+                this.id = Date.now() + Math.random(); // 唯一ID
                 this.number = number;
-                this.baseRadius = 15;
-                this.radius = this.baseRadius * (0.8 + this.number * 0.2);
+                this.baseRadius = 14;
+                this.radius = this.baseRadius * (0.8 + Math.min(number, 30) * 0.03);
                 
                 // 位置
                 this.x = x;
                 this.y = y;
                 
-                // 随机速度和方向
-                const angle = Math.random() * Math.PI * 2;
-                this.baseSpeed = 2 + Math.random() * 3;
-                this.vx = Math.cos(angle) * this.baseSpeed;
-                this.vy = Math.sin(angle) * this.baseSpeed;
+                // 速度
+                this.baseSpeed = 1.0 + Math.random() * 1.0;
+                this.vx = (Math.random() - 0.5) * 2 * this.baseSpeed;
+                this.vy = (Math.random() - 0.5) * 2 * this.baseSpeed;
                 
-                // 随机颜色
-                this.color = this.getRandomColor();
+                // 颜色
+                this.color = this.getColor();
                 
-                // 弹跳效果参数
-                this.elasticity = 0.8 + Math.random() * 0.1;
+                // 物理属性
+                this.elasticity = 0.7;
+                this.friction = 0.996;
                 
-                // 动画状态
-                this.exploding = false;
-                this.explosionProgress = 0;
+                // 状态
+                this.mergedThisFrame = false;
+                this.isNew = number > 1 ? true : false;
+                this.newTimer = this.isNew ? 20 : 0;
+                this.pulse = 0;
                 this.pulsing = false;
-                this.pulseProgress = 0;
-                this.isNew = number > 1 ? true : false; // 新生成的分裂球标记
-                this.newTimer = this.isNew ? 30 : 0;
+                
+                // 爆炸相关属性
+                this.isExploding = false;
+                this.explosionProgress = 0;
+                this.willExplode = number >= 20; // 20及以上会爆炸
+                this.isLargeNumber = number >= 20;
             }
             
-            // 获取随机颜色
-            getRandomColor() {
+            // 颜色选择
+            getColor() {
+                if (this.number === 20) {
+                    return '#FF5733'; // 20号球用特殊红色
+                } else if (this.number >= 21 && this.number <= 24) {
+                    return '#9D4EDD'; // 21-24用紫色
+                } else if (this.number >= 25) {
+                    return '#1D3557'; // 25及以上用深蓝色
+                }
+                
                 const colors = [
                     '#E63946', '#FFB703', '#FB8500', 
-                    '#1D3557', '#457B9D', '#A8DADC'
+                    '#457B9D'
                 ];
                 return colors[Math.floor(Math.random() * colors.length)];
             }
             
-            // 更新小球状态
+            // 更新逻辑
             update() {
-                if (this.exploding) {
-                    this.explosionProgress += 0.1;
-                    return;
+                // 如果正在爆炸，处理爆炸动画
+                if (this.isExploding) {
+                    this.explosionProgress += 0.15;
+                    return; // 爆炸过程中不执行其他更新
                 }
                 
-                // 处理新生成小球的闪烁效果
+                // 重置合并标记
+                this.mergedThisFrame = false;
+                
+                // 新球效果
                 if (this.isNew && this.newTimer > 0) {
                     this.newTimer--;
                 } else {
                     this.isNew = false;
                 }
                 
-                // 处理脉冲动画
+                // 脉冲动画
                 if (this.pulsing) {
-                    this.pulseProgress += 0.15;
-                    if (this.pulseProgress >= 1) {
+                    this.pulse += 0.15;
+                    if (this.pulse >= Math.PI * 2) {
                         this.pulsing = false;
-                        this.pulseProgress = 0;
+                        this.pulse = 0;
                     }
                 }
+                
+                // 应用摩擦力
+                this.vx *= this.friction;
+                this.vy *= this.friction;
                 
                 // 移动
                 this.x += this.vx;
                 this.y += this.vy;
                 
-                // 边界碰撞检测
+                // 边界碰撞
                 if (this.x - this.radius < 0) {
                     this.x = this.radius;
                     this.vx = -this.vx * this.elasticity;
@@ -200,37 +226,77 @@
                     this.vy = -this.vy * this.elasticity;
                 }
                 
-                // 轻微阻尼
-                this.vx *= 0.998;
-                this.vy *= 0.998;
-                
-                // 速度过低时重置
+                // 速度过慢时给予推动
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed < 0.3) {
+                if (speed < 0.25) {
                     const angle = Math.random() * Math.PI * 2;
-                    this.vx = Math.cos(angle) * this.baseSpeed;
-                    this.vy = Math.sin(angle) * this.baseSpeed;
-                    this.pulsing = true;
+                    this.vx = Math.cos(angle) * this.baseSpeed * 0.5;
+                    this.vy = Math.sin(angle) * this.baseSpeed * 0.5;
                 }
+                
+                // 检查是否需要爆炸（20及以上）
+                if (this.number >= 20 && !this.isExploding) {
+                    this.startExplosion();
+                }
+                
+                // 更新标记
+                this.willExplode = this.number >= 20;
+                this.isLargeNumber = this.number >= 20;
+            }
+            
+            // 开始爆炸动画
+            startExplosion() {
+                this.isExploding = true;
+                this.explosionProgress = 0;
             }
             
             // 绘制小球
             draw() {
-                if (this.exploding) {
-                    this.drawExplosion();
+                // 处理爆炸动画
+                if (this.isExploding) {
+                    // 爆炸效果：向外扩散的圆环
+                    const maxRadius = this.radius * 3;
+                    const currentRadius = this.radius + (maxRadius - this.radius) * this.explosionProgress;
+                    const alpha = 1 - this.explosionProgress;
+                    
+                    // 爆炸外环
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 165, 0, ${alpha * 0.8})`;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                    
+                    // 爆炸内环
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, currentRadius * 0.7, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 69, 0, ${alpha})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
                     return;
                 }
                 
-                // 计算当前半径（考虑脉冲效果）
+                // 计算当前半径
                 let currentRadius = this.radius;
                 if (this.pulsing) {
-                    currentRadius = this.radius * (1 + 0.1 * Math.sin(this.pulseProgress * Math.PI));
+                    currentRadius = this.radius * (1 + 0.1 * Math.sin(this.pulse));
                 }
                 
-                // 新生成小球的闪烁效果
-                let alpha = 1;
-                if (this.isNew) {
-                    alpha = 0.7 + Math.sin(this.newTimer * 0.5) * 0.3;
+                // 新球透明度
+                const alpha = this.isNew ? 0.8 + Math.sin(this.newTimer * 0.3) * 0.2 : 1;
+                
+                // 20及以上球添加警告边框（闪烁效果）
+                if (this.number >= 20) {
+                    const flashRate = this.number >= 25 ? 0.02 : 0.01;
+                    const flash = Math.sin(Date.now() * flashRate) > 0 ? 0.8 : 0.4;
+                    
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, currentRadius * 1.1, 0, Math.PI * 2);
+                    ctx.strokeStyle = this.number === 20 ? 
+                                     `rgba(255, 0, 0, ${flash})` : 
+                                     `rgba(255, 215, 0, ${flash})`;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
                 }
                 
                 // 绘制小球
@@ -240,12 +306,12 @@
                 ctx.globalAlpha = alpha;
                 ctx.fill();
                 
-                // 绘制高光
+                // 高光效果
                 ctx.beginPath();
                 ctx.arc(
-                    this.x - currentRadius * 0.3, 
-                    this.y - currentRadius * 0.3, 
-                    currentRadius * 0.2, 
+                    this.x - currentRadius * 0.3,
+                    this.y - currentRadius * 0.3,
+                    currentRadius * 0.15,
                     0, Math.PI * 2
                 );
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
@@ -261,50 +327,40 @@
                 ctx.globalAlpha = 1;
             }
             
-            // 绘制爆炸效果
-            drawExplosion() {
-                const size = this.radius * (1 + this.explosionProgress);
-                const alpha = 1 - this.explosionProgress;
-                
-                // 爆炸效果
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
-                ctx.fill();
-                
-                // 外层光环
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, size * 1.2, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(255, 165, 0, ${alpha})`;
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            }
-            
             // 碰撞检测
             collidesWith(otherBall) {
-                if (this.exploding || otherBall.exploding) return false;
+                // 爆炸中的球不参与碰撞
+                if (this.isExploding || otherBall.isExploding) return false;
+                if (this.mergedThisFrame || otherBall.mergedThisFrame) return false;
                 
                 const dx = this.x - otherBall.x;
                 const dy = this.y - otherBall.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distanceSquared = dx * dx + dy * dy;
+                const minDistance = this.radius + otherBall.radius - 2;
                 
-                return distance < this.radius + otherBall.radius;
+                return distanceSquared < minDistance * minDistance;
             }
             
-            // 融合处理
+            // 合并处理
             mergeWith(otherBall) {
+                // 爆炸中的球不参与合并
+                if (this.isExploding || otherBall.isExploding) return;
+                
+                this.mergedThisFrame = true;
+                otherBall.mergedThisFrame = true;
+                
                 // 数字相加
                 const newNumber = this.number + otherBall.number;
                 
-                // 新位置（两个球中间）
+                // 新位置计算
                 const newX = (this.x + otherBall.x) / 2;
                 const newY = (this.y + otherBall.y) / 2;
                 
-                // 新速度（平均速度）
+                // 新速度计算
                 const newVx = (this.vx + otherBall.vx) / 2;
                 const newVy = (this.vy + otherBall.vy) / 2;
                 
-                // 应用新属性
+                // 更新当前球属性
                 this.number = newNumber;
                 this.x = newX;
                 this.y = newY;
@@ -312,95 +368,81 @@
                 this.vy = newVy;
                 
                 // 更新大小
-                this.radius = this.baseRadius * (0.8 + this.number * 0.2);
+                this.radius = this.baseRadius * (0.8 + Math.min(newNumber, 30) * 0.03);
                 
-                // 融合动画
+                // 合并动画
                 this.pulsing = true;
-                this.pulseProgress = 0;
+                this.pulse = 0;
+                this.isNew = true;
+                this.newTimer = 30;
                 
-                // 检查是否需要爆炸（修改为5及以上爆炸）
-                if (this.number >= 5) {
-                    this.explode();
+                // 检查是否需要爆炸
+                if (this.number >= 20) {
+                    this.willExplode = true;
                 }
             }
             
-            // 爆炸并根据数字生成对应小球（5号球不生成新球）
-            explode() {
-                this.exploding = true;
+            // 分裂处理 - 按规则分裂
+            split() {
+                let newBallNumber = 0;
+                const newBallCount = 6; // 分裂为6个小球
                 
-                // 爆炸动画完成后生成新小球（5号球不生成）
-                setTimeout(() => {
-                    let newBallNumber = 0;
-                    let newBallCount = 6; // 默认生成6个
+                // 确定分裂后的小球数字
+                if (this.number === 21) {
+                    newBallNumber = 1;
+                } else if (this.number === 22) {
+                    newBallNumber = 2;
+                } else if (this.number === 23) {
+                    newBallNumber = 3;
+                } else if (this.number === 24) {
+                    newBallNumber = 4;
+                } else if (this.number >= 25) {
+                    newBallNumber = 5; // 25及以上都分裂为5
+                }
+                
+                // 20号球不分裂，其他按规则分裂
+                if (this.number !== 20 && newBallNumber > 0 && balls.length + newBallCount < 400) {
+                    const radius = this.radius * 2;
                     
-                    // 根据数值确定生成的小球数字和数量（5号球不生成）
-                    if (this.number === 6) {
-                        newBallNumber = 1;
-                    } else if (this.number === 7) {
-                        newBallNumber = 2;
-                    } else if (this.number === 8) {
-                        newBallNumber = 3;
-                    } else if (this.number === 9) {
-                        newBallNumber = 4;
-                    } else if (this.number === 10) {
-                        newBallNumber = 3;
-                        newBallCount = 8; // 10号球生成8个
-                    }
-                    
-                    // 如果需要生成新小球
-                    if (newBallNumber > 0) {
-                        // 生成距离，确保足够远
-                        const radius = this.radius * 2.5; 
+                    for (let i = 0; i < newBallCount; i++) {
+                        const angle = (i / newBallCount) * Math.PI * 2;
+                        const x = this.x + Math.cos(angle) * radius;
+                        const y = this.y + Math.sin(angle) * radius;
                         
-                        for (let i = 0; i < newBallCount; i++) {
-                            // 均匀分布在圆周上
-                            const angle = (i / newBallCount) * Math.PI * 2;
-                            // 计算远离爆炸中心的位置
-                            const x = this.x + Math.cos(angle) * radius;
-                            const y = this.y + Math.sin(angle) * radius;
-                            
-                            // 创建新小球并添加到数组
-                            const newBall = new Ball(x, y, newBallNumber);
-                            // 给新小球一个向外的初速度
-                            newBall.vx = Math.cos(angle) * (newBall.baseSpeed * 1.8);
-                            newBall.vy = Math.sin(angle) * (newBall.baseSpeed * 1.8);
-                            balls.push(newBall);
-                        }
+                        const newBall = new Ball(x, y, newBallNumber);
+                        newBall.vx = Math.cos(angle) * (newBall.baseSpeed * 1.2);
+                        newBall.vy = Math.sin(angle) * (newBall.baseSpeed * 1.2);
+                        balls.push(newBall);
                     }
-                }, 500); // 等待爆炸动画完成
-            }
-            
-            // 检查爆炸是否完成
-            isExplosionFinished() {
-                return this.explosionProgress >= 1;
+                }
             }
         }
         
         // 小球数组
         const balls = [];
         
-        // 初始化：在四个角落生成4个4号球
+        // 初始化：生成4个1号球
         window.addEventListener('load', () => {
-            const padding = 50; // 距离角落的距离
+            const padding = 80;
             
             // 左上角
-            const ball1 = new Ball(padding, padding, 4);
+            const ball1 = new Ball(padding, padding, 19);
             // 右上角
-            const ball2 = new Ball(canvas.width - padding, padding, 4);
+            const ball2 = new Ball(canvas.width - padding, padding, 19);
             // 左下角
-            const ball3 = new Ball(padding, canvas.height - padding, 4);
+            const ball3 = new Ball(padding, canvas.height - padding, 19);
             // 右下角
-            const ball4 = new Ball(canvas.width - padding, canvas.height - padding, 4);
+            const ball4 = new Ball(canvas.width - padding, canvas.height - padding, 19);
             
-            // 让角落的球向中心移动
-            ball1.vx = 1;
-            ball1.vy = 1;
-            ball2.vx = -1;
-            ball2.vy = 1;
-            ball3.vx = 1;
-            ball3.vy = -1;
-            ball4.vx = -1;
-            ball4.vy = -1;
+            // 向中心移动
+            ball1.vx = 0.6;
+            ball1.vy = 0.6;
+            ball2.vx = -0.6;
+            ball2.vy = 0.6;
+            ball3.vx = 0.6;
+            ball3.vy = -0.6;
+            ball4.vx = -0.6;
+            ball4.vy = -0.6;
             
             balls.push(ball1, ball2, ball3, ball4);
             updateBallCount();
@@ -411,26 +453,40 @@
             ballCountElement.textContent = balls.length;
         }
         
+        // 处理爆炸完成的球（移除并执行分裂）
+        function processExplodedBalls() {
+            for (let i = balls.length - 1; i >= 0; i--) {
+                const ball = balls[i];
+                if (ball.isExploding && ball.explosionProgress >= 1) {
+                    // 执行分裂（20号球不分裂）
+                    ball.split();
+                    
+                    // 移除当前球
+                    balls.splice(i, 1);
+                    updateBallCount();
+                }
+            }
+        }
+        
         // 重置小球
         function resetBalls() {
-            // 清空数组
             balls.length = 0;
             
-            // 在四个角落重新生成4个4号球
-            const padding = 50;
-            const ball1 = new Ball(padding, padding, 4);
-            const ball2 = new Ball(canvas.width - padding, padding, 4);
-            const ball3 = new Ball(padding, canvas.height - padding, 4);
-            const ball4 = new Ball(canvas.width - padding, canvas.height - padding, 4);
+            // 重新生成初始球
+            const padding = 80;
+            const ball1 = new Ball(padding, padding, 1);
+            const ball2 = new Ball(canvas.width - padding, padding, 1);
+            const ball3 = new Ball(padding, canvas.height - padding, 1);
+            const ball4 = new Ball(canvas.width - padding, canvas.height - padding, 1);
             
-            ball1.vx = 1;
-            ball1.vy = 1;
-            ball2.vx = -1;
-            ball2.vy = 1;
-            ball3.vx = 1;
-            ball3.vy = -1;
-            ball4.vx = -1;
-            ball4.vy = -1;
+            ball1.vx = 0.6;
+            ball1.vy = 0.6;
+            ball2.vx = -0.6;
+            ball2.vy = 0.6;
+            ball3.vx = 0.6;
+            ball3.vy = -0.6;
+            ball4.vx = -0.6;
+            ball4.vy = -0.6;
             
             balls.push(ball1, ball2, ball3, ball4);
             
@@ -445,68 +501,77 @@
         
         // 鼠标点击生成新小球
         canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const newBall = new Ball(x, y);
-            balls.push(newBall);
-            updateBallCount();
+            if (balls.length < 350) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const newBall = new Ball(x, y);
+                balls.push(newBall);
+                updateBallCount();
+            }
         });
         
         // 触摸设备支持
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const touch = e.touches[0];
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-            
-            const newBall = new Ball(x, y);
-            balls.push(newBall);
-            updateBallCount();
+            if (balls.length < 350) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                const newBall = new Ball(x, y);
+                balls.push(newBall);
+                updateBallCount();
+            }
         }, { passive: false });
         
         // 动画循环
         function animate() {
-            // 检查小球数量是否超过200，如果是则重置
-            if (balls.length > 200) {
+            // 检查小球数量是否超过400
+            if (balls.length > 400) {
                 resetBalls();
             }
             
             // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // 更新和绘制所有小球
-            for (let i = balls.length - 1; i >= 0; i--) {
-                const ball = balls[i];
-                ball.update();
-                ball.draw();
-                
-                // 移除爆炸完成的小球
-                if (ball.isExplosionFinished()) {
-                    balls.splice(i, 1);
-                    updateBallCount();
-                    continue;
-                }
+            // 更新所有小球
+            for (let i = 0; i < balls.length; i++) {
+                balls[i].update();
             }
             
-            // 检测小球之间的碰撞和融合
-            for (let i = 0; i < balls.length; i++) {
-                for (let j = i + 1; j < balls.length; j++) {
-                    const ball1 = balls[i];
-                    const ball2 = balls[j];
+            // 处理爆炸完成的球
+            processExplodedBalls();
+            
+            // 碰撞检测
+            const ballsCopy = [...balls];
+            for (let i = 0; i < ballsCopy.length; i++) {
+                const ball1 = ballsCopy[i];
+                // 检查球是否仍然存在且没有在爆炸
+                if (!balls.includes(ball1) || ball1.isExploding) continue;
+                
+                for (let j = i + 1; j < ballsCopy.length; j++) {
+                    const ball2 = ballsCopy[j];
+                    if (!balls.includes(ball2) || ball2.isExploding) continue;
                     
                     if (ball1.collidesWith(ball2)) {
                         ball1.mergeWith(ball2);
-                        balls.splice(j, 1);
-                        updateBallCount();
-                        j--;
+                        const index = balls.indexOf(ball2);
+                        if (index !== -1) {
+                            balls.splice(index, 1);
+                            updateBallCount();
+                        }
                     }
                 }
             }
             
-            // 持续动画
+            // 绘制所有小球
+            for (let i = 0; i < balls.length; i++) {
+                balls[i].draw();
+            }
+            
             requestAnimationFrame(animate);
         }
         
