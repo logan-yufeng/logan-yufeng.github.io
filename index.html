@@ -132,7 +132,7 @@
                 this.y = y;
                 
                 // 速度
-                this.baseSpeed = 1.0 + Math.random() * 1.0;
+                this.baseSpeed = 1.0 + Math.random() * 4.0;
                 this.vx = (Math.random() - 0.5) * 2 * this.baseSpeed;
                 this.vy = (Math.random() - 0.5) * 2 * this.baseSpeed;
                 
@@ -229,7 +229,7 @@
                 // 速度过慢时给予推动
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 if (speed < 0.25) {
-                    const angle = Math.random() * Math.PI * 2;
+                    const angle = Math.random() * Math.PI * 5;
                     this.vx = Math.cos(angle) * this.baseSpeed * 0.5;
                     this.vy = Math.sin(angle) * this.baseSpeed * 0.5;
                 }
