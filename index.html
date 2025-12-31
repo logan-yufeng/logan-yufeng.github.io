@@ -1,628 +1,237 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>爆炸小球</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <title>2026跨年倒數 | 北京時間</title>
     <style>
-        body {
+        * {
             margin: 0;
-            overflow: hidden;
-            background-color: #f5f5f5;
-            cursor: pointer;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
         }
-        canvas {
-            display: block;
-        }
-        .info {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            color: #666;
-            font-family: Arial, sans-serif;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            width: 60px;
-            transition: width 0.3s ease;
-            overflow: hidden;
-            cursor: pointer;
-            z-index: 10;
-        }
-        .info:hover {
-            width: 320px;
-        }
-        .info .rule-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
-        }
-        .info .rule-details {
-            display: none;
-            margin-top: 5px;
-        }
-        .info:hover .rule-details {
-            display: block;
-        }
-        .count-display {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            color: #666;
-            font-family: Arial, sans-serif;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 10px 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            font-weight: bold;
-            z-index: 10;
-        }
-        .reset-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 215, 0, 0.8);
+        /* 頁面整體樣式 - 跨年喜慶氛圍 */
+        body {
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            font-family: Arial, sans-serif;
-            font-size: 32px;
-            color: #666;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
-            z-index: 20;
+            justify-content: center;
+            background: linear-gradient(135deg, #c01e25, #0a0a0a);
+            color: #fff;
+            overflow: hidden;
+        }
+        /* 主標題 */
+        .title {
+            font-size: 3rem;
+            margin-bottom: 40px;
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700, 0 0 40px #ff9900;
+            text-align: center;
+        }
+        /* 常規倒數容器（天時分秒）- 持續顯示至最後10秒 */
+        .countdown-normal {
+            display: flex;
+            gap: 30px;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .countdown-normal .item {
+            text-align: center;
+        }
+        .countdown-normal .num {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px #fff, 0 0 30px #ffd700;
+            line-height: 1.2;
+        }
+        .countdown-normal .text {
+            font-size: 1rem;
+            color: #ffd966;
+            margin-top: 8px;
+        }
+        /* 最後十秒專屬倒數（超大數字，僅顯示數字10→1） */
+        .countdown-ten {
+            font-size: 12rem;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 0 0 30px #ffd700, 0 0 60px #ff9900, 0 0 90px #ff0000;
+            display: none;
+            animation: pulse 0.8s infinite alternate;
+        }
+        /* 數字跳動動畫 */
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(1.05); opacity: 0.95; }
+        }
+        /* 新年祝賀語容器 - 打字機動畫專用 */
+        .happy-new-year {
+            font-size: 3.2rem;
+            font-weight: bold;
+            color: #ffd700;
+            text-align: center;
+            text-shadow: 0 0 20px #ffd700, 0 0 40px #ff9900;
+            display: none;
+            white-space: pre-line;
+            line-height: 1.6;
+        }
+        /* 打字機光標閃爍動畫 */
+        .typing-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 50px;
+            background-color: #ffd700;
+            margin-left: 5px;
+            animation: blink 0.6s infinite alternate;
+            vertical-align: middle;
+        }
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        /* 時區提示 */
+        .timezone {
+            position: absolute;
+            bottom: 20px;
+            font-size: 1rem;
+            color: #ffd966;
+            opacity: 0.8;
+        }
+        /* 響應式适配（手機端自動縮放） */
+        @media (max-width: 768px) {
+            .title { font-size: 2rem; }
+            .countdown-normal { gap: 15px; }
+            .countdown-normal .num { font-size: 2.5rem; }
+            .countdown-ten { font-size: 7rem; }
+            .happy-new-year { font-size: 1.8rem; line-height: 1.8; }
+            .typing-cursor { height: 30px; }
         }
     </style>
 </head>
 <body>
-    <div class="count-display">
-        小球数量: <span id="ballCount">4</span>
-    </div>
-    <div class="info">
-        <span class="rule-title">规则</span>
-        <div class="rule-details">
-            <p><i class="fa fa-mouse-pointer mr-2"></i>点击生成小球</p>
-            <p><i class="fa fa-random mr-2"></i>任意小球碰撞即可合成</p>
-            <p><i class="fa fa-bomb mr-2"></i>20及以上球会爆炸</p>
-            <p><i class="fa fa-ban mr-2"></i>20号爆炸不分裂</p>
-            <p><i class="fa fa-split mr-2"></i>≤9的数字爆炸生成6个</p>
-            <p><i class="fa fa-split mr-2"></i>≥10的数字爆炸生成2个</p>
-            <p><i class="fa fa-split mr-2"></i>21→2个1，22→2个2...35→2个15</p>
-            <p><i class="fa fa-split mr-2"></i>35+同35号规则</p>
-            <p><i class="fa fa-exclamation-triangle mr-2"></i>超400个球会重置</p>
+    <h1 class="title">2026新年倒數</h1>
+    
+    <!-- 最後十秒專屬數字倒數區 -->
+    <div class="countdown-ten" id="tenCountdown"></div>
+    
+    <!-- 常規倒數區（天時分秒，持續顯示） -->
+    <div class="countdown-normal" id="normalCountdown">
+        <div class="item">
+            <div class="num" id="days">00</div>
+            <div class="text">天</div>
+        </div>
+        <div class="item">
+            <div class="num" id="hours">00</div>
+            <div class="text">時</div>
+        </div>
+        <div class="item">
+            <div class="num" id="minutes">00</div>
+            <div class="text">分</div>
+        </div>
+        <div class="item">
+            <div class="num" id="seconds">00</div>
+            <div class="text">秒</div>
         </div>
     </div>
-    <div class="reset-animation" id="resetAnimation">
-        小球数量已重置!
+    
+    <!-- 新年祝賀語區 - 打字機動畫 -->
+    <div class="happy-new-year" id="newYearMsg">
+        <span id="typingText"></span><span class="typing-cursor"></span>
     </div>
-    <canvas id="gameCanvas"></canvas>
+
+    <div class="timezone">⏰ 精準北京時間 (UTC+8)</div>
 
     <script>
-        // 获取画布和上下文
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const ballCountElement = document.getElementById('ballCount');
-        const resetAnimation = document.getElementById('resetAnimation');
-        
-        // 设置画布尺寸为窗口大小
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        
-        // 初始化尺寸并监听窗口变化
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        
-        // 9种马卡龙色系
-        const macaronColors = [
-            '#FFD1DC', // 马卡龙粉
-            '#E6E6FA', // 淡紫
-            '#B5EAD7', // 薄荷绿
-            '#FFDAC1', // 浅橙
-            '#C7CEEA', // 淡蓝
-            '#FFB7B2', // 浅红
-            '#F7E8E0', // 米色
-            '#D6EFD8', // 淡绿
-            '#FFE4E1'  // 浅粉
-        ];
-        
-        // 小球类 - 初始19号球 + 分裂数量调整
-        class Ball {
-            constructor(x, y, number = 1) {
-                this.id = Date.now() + Math.random(); // 唯一ID
-                this.number = number;
-                this.baseRadius = 18; // 较大的基础半径
-                this.radius = this.baseRadius * (0.9 + Math.min(number, 35) * 0.025);
-                
-                // 位置
-                this.x = x;
-                this.y = y;
-                
-                // 速度
-                this.baseSpeed = 2.0 + Math.random() * 3.0;
-                this.vx = (Math.random() - 0.5) * 6 * this.baseSpeed;
-                this.vy = (Math.random() - 0.5) * 6 * this.baseSpeed;
-                
-                // 颜色 - 使用马卡龙色系
-                this.color = this.getColor();
-                
-                // 物理属性
-                this.elasticity = 0.85;
-                this.friction = 0.998;
-                
-                // 状态
-                this.mergedThisFrame = false;
-                this.isNew = number > 1 ? true : false;
-                this.newTimer = this.isNew ? 20 : 0;
-                this.pulse = 0;
-                this.pulsing = false;
-                
-                // 爆炸相关属性
-                this.isExploding = false;
-                this.explosionProgress = 0;
-                this.willExplode = number >= 20; // 20及以上会爆炸
-                this.isLargeNumber = number >= 20;
-            }
-            
-            // 颜色选择
-            getColor() {
-                if (this.number === 20) {
-                    return '#FF6B6B'; // 20号球用马卡龙红色
-                } else if (this.number >= 21 && this.number <= 25) {
-                    return '#C06C84'; // 21-25用马卡龙紫红色
-                } else if (this.number >= 26 && this.number <= 30) {
-                    return '#355C7D'; // 26-30用马卡龙蓝色
-                } else if (this.number >= 31) {
-                    return '#2A9D8F'; // 31及以上用马卡龙青绿色
-                }
-                
-                // 从9种马卡龙色中随机选择
-                return macaronColors[Math.floor(Math.random() * macaronColors.length)];
-            }
-            
-            // 更新逻辑
-            update() {
-                // 如果正在爆炸，处理爆炸动画
-                if (this.isExploding) {
-                    this.explosionProgress += 0.15;
-                    return; // 爆炸过程中不执行其他更新
-                }
-                
-                // 重置合并标记
-                this.mergedThisFrame = false;
-                
-                // 新球效果
-                if (this.isNew && this.newTimer > 0) {
-                    this.newTimer--;
+        // ========== 核心配置 ==========
+        // 目標時間：北京時間2026年1月1日 00:00:00（強制UTC+8，不受本地時區影響）
+        const TARGET_DATE = new Date('2026-01-01T00:00:00+08:00');
+        // 定製祝賀語內容（嚴格按你的要求排版）
+        const GREETING_TEXT = `HAPPY NEW YEAR
+祝1E同學 學業進步
+HE加油考取好成績`;
+        // 打字機速度：每個字延遲120毫秒（可調整，數值越小越快）
+        const TYPING_SPEED = 120;
+
+        // 获取DOM元素
+        const normalCountdown = document.getElementById('normalCountdown');
+        const tenCountdown = document.getElementById('tenCountdown');
+        const newYearMsg = document.getElementById('newYearMsg');
+        const typingText = document.getElementById('typingText');
+        const daysEl = document.getElementById('days');
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+
+        // 標誌位：防止打字動畫重複執行
+        let isTyped = false;
+
+        // ========== 打字機動畫核心函數 ==========
+        function typingAnimation(text, speed) {
+            let index = 0;
+            typingText.innerHTML = '';
+            newYearMsg.style.display = 'block';
+            // 逐字輸出
+            const timer = setInterval(() => {
+                if (index < text.length) {
+                    typingText.innerHTML += text.charAt(index);
+                    index++;
                 } else {
-                    this.isNew = false;
+                    clearInterval(timer);
+                    // 動畫結束隱藏光標
+                    document.querySelector('.typing-cursor').style.display = 'none';
                 }
-                
-                // 脉冲动画
-                if (this.pulsing) {
-                    this.pulse += 0.15;
-                    if (this.pulse >= Math.PI * 2) {
-                        this.pulsing = false;
-                        this.pulse = 0;
-                    }
+            }, speed);
+        }
+
+        // ========== 倒數計時核心函數 ==========
+        function updateCountdown() {
+            // 獲取當前「北京時間」時間戳（不受用戶本地時區干擾）
+            const now = new Date();
+            const currentTime = now.getTime() + (8 - now.getTimezoneOffset()/60) * 3600 * 1000;
+            const targetTime = TARGET_DATE.getTime();
+            const diff = targetTime - currentTime;
+
+            // ✅ 狀態1：已到跨年零點 → 執行打字動畫
+            if (diff <= 0) {
+                normalCountdown.style.display = 'none';
+                tenCountdown.style.display = 'none';
+                if (!isTyped) {
+                    isTyped = true;
+                    typingAnimation(GREETING_TEXT, TYPING_SPEED);
                 }
-                
-                // 应用摩擦力
-                this.vx *= this.friction;
-                this.vy *= this.friction;
-                
-                // 移动
-                this.x += this.vx;
-                this.y += this.vy;
-                
-                // 边界碰撞
-                if (this.x - this.radius < 0) {
-                    this.x = this.radius;
-                    this.vx = -this.vx * this.elasticity;
-                } else if (this.x + this.radius > canvas.width) {
-                    this.x = canvas.width - this.radius;
-                    this.vx = -this.vx * this.elasticity;
-                }
-                
-                if (this.y - this.radius < 0) {
-                    this.y = this.radius;
-                    this.vy = -this.vy * this.elasticity;
-                } else if (this.y + this.radius > canvas.height) {
-                    this.y = canvas.height - this.radius;
-                    this.vy = -this.vy * this.elasticity;
-                }
-                
-                // 速度过慢时给予推动
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed < 0.5) {
-                    const angle = Math.random() * Math.PI * 2;
-                    this.vx = Math.cos(angle) * this.baseSpeed * 0.8;
-                    this.vy = Math.sin(angle) * this.baseSpeed * 0.8;
-                }
-                
-                // 检查是否需要爆炸（20及以上）
-                if (this.number >= 20 && !this.isExploding) {
-                    this.startExplosion();
-                }
-                
-                // 更新标记
-                this.willExplode = this.number >= 20;
-                this.isLargeNumber = this.number >= 20;
+                return;
             }
-            
-            // 开始爆炸动画
-            startExplosion() {
-                this.isExploding = true;
-                this.explosionProgress = 0;
-            }
-            
-            // 绘制小球
-            draw() {
-                // 处理爆炸动画
-                if (this.isExploding) {
-                    // 爆炸效果：向外扩散的圆环
-                    const maxRadius = this.radius * 3;
-                    const currentRadius = this.radius + (maxRadius - this.radius) * this.explosionProgress;
-                    const alpha = 1 - this.explosionProgress;
-                    
-                    // 爆炸外环
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(255, 165, 0, ${alpha * 0.8})`;
-                    ctx.lineWidth = 5;
-                    ctx.stroke();
-                    
-                    // 爆炸内环
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, currentRadius * 0.7, 0, Math.PI * 2);
-                    ctx.strokeStyle = `rgba(255, 69, 0, ${alpha})`;
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                    
-                    return;
-                }
-                
-                // 计算当前半径
-                let currentRadius = this.radius;
-                if (this.pulsing) {
-                    currentRadius = this.radius * (1 + 0.1 * Math.sin(this.pulse));
-                }
-                
-                // 新球透明度
-                const alpha = this.isNew ? 0.8 + Math.sin(this.newTimer * 0.3) * 0.2 : 1;
-                
-                // 20及以上球添加警告边框（闪烁效果）
-                if (this.number >= 20) {
-                    const flashRate = this.number >= 30 ? 0.03 : 0.015;
-                    const flash = Math.sin(Date.now() * flashRate) > 0 ? 0.8 : 0.4;
-                    
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, currentRadius * 1.1, 0, Math.PI * 2);
-                    ctx.strokeStyle = this.number === 20 ? 
-                                     `rgba(255, 0, 0, ${flash})` : 
-                                     `rgba(255, 215, 0, ${flash})`;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-                
-                // 绘制小球
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = alpha;
-                ctx.fill();
-                
-                // 高光效果
-                ctx.beginPath();
-                ctx.arc(
-                    this.x - currentRadius * 0.3,
-                    this.y - currentRadius * 0.3,
-                    currentRadius * 0.15,
-                    0, Math.PI * 2
-                );
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.fill();
-                
-                // 绘制数字
-                ctx.fillStyle = '#555';
-                ctx.font = 'bold ' + (currentRadius * 0.6) + 'px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(this.number, this.x, this.y);
-                
-                ctx.globalAlpha = 1;
-            }
-            
-            // 碰撞检测
-            collidesWith(otherBall) {
-                // 爆炸中的球不参与碰撞
-                if (this.isExploding || otherBall.isExploding) return false;
-                if (this.mergedThisFrame || otherBall.mergedThisFrame) return false;
-                
-                const dx = this.x - otherBall.x;
-                const dy = this.y - otherBall.y;
-                const distanceSquared = dx * dx + dy * dy;
-                const minDistance = this.radius + otherBall.radius - 2;
-                
-                return distanceSquared < minDistance * minDistance;
-            }
-            
-            // 合并处理
-            mergeWith(otherBall) {
-                // 爆炸中的球不参与合并
-                if (this.isExploding || otherBall.isExploding) return;
-                
-                this.mergedThisFrame = true;
-                otherBall.mergedThisFrame = true;
-                
-                // 数字相加
-                const newNumber = this.number + otherBall.number;
-                
-                // 新位置计算
-                const newX = (this.x + otherBall.x) / 2;
-                const newY = (this.y + otherBall.y) / 2;
-                
-                // 新速度计算
-                const newVx = (this.vx + otherBall.vx) / 2 * 1.1;
-                const newVy = (this.vy + otherBall.vy) / 2 * 1.1;
-                
-                // 更新当前球属性
-                this.number = newNumber;
-                this.x = newX;
-                this.y = newY;
-                this.vx = newVx;
-                this.vy = newVy;
-                
-                // 更新大小
-                this.radius = this.baseRadius * (0.9 + Math.min(newNumber, 35) * 0.025);
-                
-                // 合并动画
-                this.pulsing = true;
-                this.pulse = 0;
-                this.isNew = true;
-                this.newTimer = 30;
-                
-                // 检查是否需要爆炸
-                if (this.number >= 20) {
-                    this.willExplode = true;
-                }
-            }
-            
-            // 分裂处理 - 新增规则：≥10的数字爆炸生成2个
-            split() {
-                let newBallNumber = 0;
-                let newBallCount = 6; // 默认生成6个
-                
-                // 确定分裂后的小球数字
-                if (this.number === 21) {
-                    newBallNumber = 1;
-                } else if (this.number === 22) {
-                    newBallNumber = 2;
-                } else if (this.number === 23) {
-                    newBallNumber = 3;
-                } else if (this.number === 24) {
-                    newBallNumber = 4;
-                } else if (this.number === 25) {
-                    newBallNumber = 5;
-                } else if (this.number === 26) {
-                    newBallNumber = 6;
-                } else if (this.number === 27) {
-                    newBallNumber = 7;
-                } else if (this.number === 28) {
-                    newBallNumber = 8;
-                } else if (this.number === 29) {
-                    newBallNumber = 9;
-                } else if (this.number === 30) {
-                    newBallNumber = 10;
-                    newBallCount = 2; // ≥10的数字生成2个
-                } else if (this.number === 31) {
-                    newBallNumber = 11;
-                    newBallCount = 2; // ≥10的数字生成2个
-                } else if (this.number === 32) {
-                    newBallNumber = 12;
-                    newBallCount = 2; // ≥10的数字生成2个
-                } else if (this.number === 33) {
-                    newBallNumber = 13;
-                    newBallCount = 2; // ≥10的数字生成2个
-                } else if (this.number === 34) {
-                    newBallNumber = 14;
-                    newBallCount = 2; // ≥10的数字生成2个
-                } else if (this.number === 35) {
-                    newBallNumber = 15;
-                    newBallCount = 2; // ≥10的数字生成2个
-                } else if (this.number > 35) {
-                    newBallNumber = 15;
-                    newBallCount = 2; // ≥10的数字生成2个
-                }
-                
-                // 20号球不分裂，其他按规则分裂
-                if (this.number !== 20 && newBallNumber > 0 && balls.length + newBallCount < 400) {
-                    const radius = this.radius * 2;
-                    
-                    for (let i = 0; i < newBallCount; i++) {
-                        // 计算分裂角度（2个球时呈对角线）
-                        const angle = (i / newBallCount) * Math.PI * 2;
-                        const x = this.x + Math.cos(angle) * radius;
-                        const y = this.y + Math.sin(angle) * radius;
-                        
-                        const newBall = new Ball(x, y, newBallNumber);
-                        // 分裂速度根据数量调整
-                        const speedMultiplier = newBallCount === 2 ? 2.5 : 1.8;
-                        newBall.vx = Math.cos(angle) * (newBall.baseSpeed * speedMultiplier);
-                        newBall.vy = Math.sin(angle) * (newBall.baseSpeed * speedMultiplier);
-                        balls.push(newBall);
-                    }
-                }
+
+            // 轉換剩餘時間為 天、時、分、秒
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            // ✅ 狀態2：剩餘時間 ≤10秒 → 僅顯示超大數字倒數（10、9、8...1）
+            if (seconds <= 10 && days === 0 && hours === 0 && minutes === 0) {
+                normalCountdown.style.display = 'none';
+                tenCountdown.style.display = 'block';
+                tenCountdown.textContent = seconds;
+            } 
+            // ✅ 狀態3：剩餘時間 >10秒 → 持續顯示天時分秒完整倒數
+            else {
+                tenCountdown.style.display = 'none';
+                normalCountdown.style.display = 'flex';
+                // 數字補零，保持兩位格式（01、02...）
+                daysEl.textContent = String(days).padStart(2, '0');
+                hoursEl.textContent = String(hours).padStart(2, '0');
+                minutesEl.textContent = String(minutes).padStart(2, '0');
+                secondsEl.textContent = String(seconds).padStart(2, '0');
             }
         }
-        
-        // 小球数组
-        const balls = [];
-        
-        // 初始化：生成4个19号球（按要求）
-        window.addEventListener('load', () => {
-            const padding = 100;
-            
-            // 左上角
-            const ball1 = new Ball(padding, padding, 19);
-            // 右上角
-            const ball2 = new Ball(canvas.width - padding, padding, 19);
-            // 左下角
-            const ball3 = new Ball(padding, canvas.height - padding, 19);
-            // 右下角
-            const ball4 = new Ball(canvas.width - padding, canvas.height - padding, 19);
-            
-            // 向中心移动，更容易快速合成20号球
-            ball1.vx = 2.5;
-            ball1.vy = 2.5;
-            ball2.vx = -2.5;
-            ball2.vy = 2.5;
-            ball3.vx = 2.5;
-            ball3.vy = -2.5;
-            ball4.vx = -2.5;
-            ball4.vy = -2.5;
-            
-            balls.push(ball1, ball2, ball3, ball4);
-            updateBallCount();
-        });
-        
-        // 更新小球数量显示
-        function updateBallCount() {
-            ballCountElement.textContent = balls.length;
-        }
-        
-        // 处理爆炸完成的球（移除并执行分裂）
-        function processExplodedBalls() {
-            for (let i = balls.length - 1; i >= 0; i--) {
-                const ball = balls[i];
-                if (ball.isExploding && ball.explosionProgress >= 1) {
-                    // 执行分裂（20号球不分裂）
-                    ball.split();
-                    
-                    // 移除当前球
-                    balls.splice(i, 1);
-                    updateBallCount();
-                }
-            }
-        }
-        
-        // 重置小球
-        function resetBalls() {
-            balls.length = 0;
-            
-            // 重新生成4个19号初始球
-            const padding = 100;
-            const ball1 = new Ball(padding, padding, 19);
-            const ball2 = new Ball(canvas.width - padding, padding, 19);
-            const ball3 = new Ball(padding, canvas.height - padding, 19);
-            const ball4 = new Ball(canvas.width - padding, canvas.height - padding, 19);
-            
-            ball1.vx = 2.5;
-            ball1.vy = 2.5;
-            ball2.vx = -2.5;
-            ball2.vy = 2.5;
-            ball3.vx = 2.5;
-            ball3.vy = -2.5;
-            ball4.vx = -2.5;
-            ball4.vy = -2.5;
-            
-            balls.push(ball1, ball2, ball3, ball4);
-            
-            // 显示重置动画
-            resetAnimation.style.opacity = 1;
-            setTimeout(() => {
-                resetAnimation.style.opacity = 0;
-            }, 1000);
-            
-            updateBallCount();
-        }
-        
-        // 鼠标点击生成新小球
-        canvas.addEventListener('click', (e) => {
-            if (balls.length < 350) {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                const newBall = new Ball(x, y);
-                balls.push(newBall);
-                updateBallCount();
-            }
-        });
-        
-        // 触摸设备支持
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (balls.length < 350) {
-                const rect = canvas.getBoundingClientRect();
-                const touch = e.touches[0];
-                const x = touch.clientX - rect.left;
-                const y = touch.clientY - rect.top;
-                
-                const newBall = new Ball(x, y);
-                balls.push(newBall);
-                updateBallCount();
-            }
-        }, { passive: false });
-        
-        // 动画循环
-        function animate() {
-            // 检查小球数量是否超过400
-            if (balls.length > 400) {
-                resetBalls();
-            }
-            
-            // 清空画布
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 更新所有小球
-            for (let i = 0; i < balls.length; i++) {
-                balls[i].update();
-            }
-            
-            // 处理爆炸完成的球
-            processExplodedBalls();
-            
-            // 碰撞检测
-            const ballsCopy = [...balls];
-            for (let i = 0; i < ballsCopy.length; i++) {
-                const ball1 = ballsCopy[i];
-                // 检查球是否仍然存在且没有在爆炸
-                if (!balls.includes(ball1) || ball1.isExploding) continue;
-                
-                for (let j = i + 1; j < ballsCopy.length; j++) {
-                    const ball2 = ballsCopy[j];
-                    if (!balls.includes(ball2) || ball2.isExploding) continue;
-                    
-                    if (ball1.collidesWith(ball2)) {
-                        ball1.mergeWith(ball2);
-                        const index = balls.indexOf(ball2);
-                        if (index !== -1) {
-                            balls.splice(index, 1);
-                            updateBallCount();
-                        }
-                    }
-                }
-            }
-            
-            // 绘制所有小球
-            for (let i = 0; i < balls.length; i++) {
-                balls[i].draw();
-            }
-            
-            requestAnimationFrame(animate);
-        }
-        
-        // 开始动画
-        animate();
+
+        // 初始化執行一次（避免頁面加載延遲）
+        updateCountdown();
+        // 每秒更新一次倒數
+        setInterval(updateCountdown, 1000);
     </script>
 </body>
 </html>
-    
